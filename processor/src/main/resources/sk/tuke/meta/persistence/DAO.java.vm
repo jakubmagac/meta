@@ -1,0 +1,291 @@
+package $package;
+
+import sk.tuke.meta.persistence.EntityDAO;
+import sk.tuke.meta.persistence.DAOPersistenceManager;
+import sk.tuke.meta.example.$entity;
+import java.lang.annotation.Annotation;
+
+import java.sql.*;
+import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.lang.reflect.Field;
+import javax.persistence.Column;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+public class ${entity}DAO implements EntityDAO<$entity> {
+    private final DAOPersistenceManager manager;
+    private final Connection connection;
+
+    public ${entity}DAO(DAOPersistenceManager manager) {
+        this.manager = manager;
+        this.connection = manager.getConnection();
+    }
+
+    @Override
+    public void createTable() {
+        String query = """
+        create table if not exists $table (
+        #foreach( $var in $variables )
+            #if($var.referencedTable)
+                $var.name INTEGER,
+                FOREIGN KEY ($var.name) REFERENCES $var.referencedTable ($var.referencedTableID)
+            #else
+                $var.name $var.type
+            #end
+            #if($var.additionalAnnotations)
+                #foreach($add in $var.additionalAnnotations)
+                    $add
+                #end
+            #end
+            #if($foreach.hasNext),#end
+        #end
+        );
+        """.replaceAll("\\s+", " ").trim();
+
+        try {
+            Statement stmt = this.connection.createStatement();
+            int rowsAffected = stmt.executeUpdate(query);
+        } catch (SQLException e) {
+            System.out.println("Error creating table");
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public Optional<$entity> get(long id) {
+        $entity instance = new $entity();
+
+        try {
+            Statement stmt = this.connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM $table WHERE $primaryKey = id;");
+
+            if (!rs.next()) {
+                System.out.println("ResultSet in empty in Java");
+            } else {
+                do {
+                    #foreach($el in $elementsAndAliases)
+                        #if($el.type != "Integer" && $el.type != "String" && $el.type != "Float")
+                            Object nullCheck = rs.getObject("${el.alias}");
+                                if (nullCheck != null) {
+                                    instance.set${el.element}(
+                                        ($el.type)
+                                            this.getForeignKey(${el.type}.class, (Integer) rs.getObject("${el.alias}"))
+                                    );
+                                } else {
+                                    instance.setDepartment(null); // or handle the case when the department is null
+                                }
+                        #else
+                            instance.set${el.element}(($el.type) rs.getObject("${el.alias}"));
+                        #end
+                    #end
+                } while (rs.next());
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        if (instance != null) {
+            return Optional.of(instance);
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    private Object getForeignKey(Class type, int id) {
+        return this.manager.get(type, id);
+    }
+
+    @Override
+    public List<$entity> getAll() {
+        List<$entity> results = new ArrayList<$entity>();
+        $entity instance = new $entity();
+
+        try {
+            Statement stmt = this.connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM $table;");
+
+            if (!rs.next()) {
+                System.out.println("ResultSet in empty in Java");
+            } else {
+                do {
+                    #foreach($el in $elementsAndAliases)
+                        #if($el.type != "Integer" && $el.type != "String" && $el.type != "Float")
+                            Object nullCheck = rs.getObject("${el.alias}");
+                                if (nullCheck != null) {
+                                    instance.set${el.element}(
+                                        ($el.type)
+                                            this.getForeignKey(${el.type}.class, (Integer) rs.getObject("${el.alias}"))
+                                    );
+                                } else {
+                                    instance.setDepartment(null); // or handle the case when the department is null
+                                }
+                        #else
+                            instance.set${el.element}(($el.type) rs.getObject("${el.alias}"));
+                        #end
+                    #end
+                } while (rs.next());
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return results;
+    }
+
+    @Override
+    public List<$entity> getBy(String fieldName, Object value) {
+        List<$entity> results = new ArrayList<$entity>();
+        $entity instance = new $entity();
+
+        try {
+            Statement stmt = this.connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM $table WHERE " + fieldName + " = " + value + ";");
+
+            if (!rs.next()) {
+                System.out.println("ResultSet in empty in Java");
+            } else {
+                do {
+                    #foreach($el in $elementsAndAliases)
+                        #if($el.type != "Integer" && $el.type != "String" && $el.type != "Float")
+                            Object nullCheck = rs.getObject("${el.alias}");
+                                if (nullCheck != null) {
+                                    instance.set${el.element}(
+                                        ($el.type)
+                                            this.getForeignKey(${el.type}.class, (Integer) rs.getObject("${el.alias}"))
+                                    );
+                                } else {
+                                    instance.setDepartment(null); // or handle the case when the department is null
+                                }
+                        #else
+                            instance.set${el.element}(($el.type) rs.getObject("${el.alias}"));
+                        #end
+                    #end
+                } while (rs.next());
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return results;
+    }
+
+    @Override
+    public long save(Object entity) {
+        PreparedStatement sqlStatement = null;
+        $entity object = ($entity) entity;
+        String sql = "";
+
+        if(object.getId() == 0) {
+            sql = "INSERT INTO $table ( #foreach($el in $elementsAndAliases) #if($el.element != "Id") $el.alias #if($foreach.hasNext), #end #end #end ) VALUES (" #foreach($el in $elementsAndAliases) #if($el.element != "Id") #if($el.type != "Integer" && $el.type != "String" && $el.type != "Float") + object.get${el.element}().getId() #else #if($el.type == "String") + "'" + object.get${el.element}() + "'" #else + object.get${el.element}() #end #end #if($foreach.hasNext) + "," #end #end #end + ")";
+        } else {
+            sql = "UPDATE $table SET"
+                #foreach($el in $elementsAndAliases)
+                + "$el.alias ="
+                #if($el.type != "Integer" && $el.type != "String" && $el.type != "Float")
+                    + object.get${el.element}().getId()
+                #else
+                    #if($el.type == "String") + "'" + object.get${el.element}() + "'"
+                    #else + object.get${el.element}()
+                    #end
+                #end
+                #if($foreach.hasNext) + "," #end
+                #end + "WHERE $primaryKey = " + object.getId() + ";";
+        }
+
+        System.out.println(sql);
+
+        try {
+            sqlStatement = this.connection.prepareStatement(sql);
+        } catch (SQLException err) {
+            System.out.println(err);
+        }
+
+        try {
+            assert sqlStatement != null;
+            int rowsInserted = sqlStatement.executeUpdate();
+            System.out.println("ROW INSERTED: " + rowsInserted);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        int primaryKey = 0;
+        try {
+            Statement stmt = this.connection.createStatement();
+            ResultSet getIdQuery = stmt.executeQuery("SELECT last_insert_rowid();");
+            if (getIdQuery.next()) {
+                primaryKey = getIdQuery.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        for(Field field : entity.getClass().getDeclaredFields()) {
+            field.setAccessible(true);
+
+            Annotation idAnnotation = field.getAnnotation(Id.class);
+            if (idAnnotation != null) {
+                try {
+                    field.set(entity, primaryKey);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+        }
+
+        System.out.println(primaryKey);
+
+        return primaryKey;
+    }
+
+    @Override
+    public void delete(Object entity) {
+        PreparedStatement sqlStatement = null;
+        $entity object = ($entity) entity;
+        String sql = "";
+
+        #if($elementsToSetToNull.size() > 0)
+        #foreach($el in $elementsToSetToNull)
+
+        sql =  "UPDATE $el.table SET $el.columnName = NULL WHERE $el.columnName = " + object.getId();
+
+        System.out.println(sql);
+
+        try {
+            sqlStatement = this.connection.prepareStatement(sql);
+        } catch (SQLException err) {
+            System.out.println(err);
+        }
+
+        try {
+            assert sqlStatement != null;
+            int rowsInserted = sqlStatement.executeUpdate();
+            System.out.println("Null set");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        #end
+        #end
+
+        sql = "DELETE FROM $table WHERE $primaryKey = " + object.getId() + ";";
+        System.out.println(sql);
+
+        try {
+            sqlStatement = this.connection.prepareStatement(sql);
+        } catch (SQLException err) {
+            System.out.println(err);
+        }
+
+        try {
+            assert sqlStatement != null;
+            int rowsInserted = sqlStatement.executeUpdate();
+            System.out.println("Row deleted");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}

@@ -1,0 +1,6 @@
+/home/kubo/Documents/Skola/Metaprogramovanie/assignment/persistence/src/main/java/sk/tuke/meta/persistence/PersistenceManager.java
+/home/kubo/Documents/Skola/Metaprogramovanie/assignment/persistence/src/main/java/sk/tuke/meta/persistence/QueryBuilder.java
+/home/kubo/Documents/Skola/Metaprogramovanie/assignment/persistence/src/main/java/sk/tuke/meta/persistence/SqlGeneralHelper.java
+/home/kubo/Documents/Skola/Metaprogramovanie/assignment/persistence/src/main/java/sk/tuke/meta/persistence/ReflectivePersistenceManager.java
+/home/kubo/Documents/Skola/Metaprogramovanie/assignment/persistence/src/main/java/sk/tuke/meta/persistence/DAOPersistenceManager.java
+/home/kubo/Documents/Skola/Metaprogramovanie/assignment/persistence/src/main/java/sk/tuke/meta/persistence/EntityDAO.java

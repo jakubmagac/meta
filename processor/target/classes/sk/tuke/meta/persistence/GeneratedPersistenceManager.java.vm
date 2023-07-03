@@ -1,0 +1,18 @@
+package sk.tuke.meta.example;
+import sk.tuke.meta.persistence.DAOPersistenceManager;
+
+import java.sql.Connection;
+
+#foreach($entity in $entities)
+import ${entity};
+import ${entity}DAO;
+#end
+
+public class GeneratedPersistenceManager extends DAOPersistenceManager {
+    public GeneratedPersistenceManager(Connection connection) {
+        super(connection);
+    #foreach($entity in $simpleEntities)
+    putDAO(${entity}.class, new ${entity}DAO(this));
+    #end
+}
+}
